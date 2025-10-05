@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="default">
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
@@ -9,7 +9,11 @@
 <style>
   :root{
     --bg:#0f172a; --panel:#111827; --text:#e2e8f0; --muted:#94a3b8;
-    --border:#334155; --brand:#2563eb; --ok:#22c55e; --ok2:#84cc16;
+    --border:#334155; --brand:#2563eb; --ok:#22c55e; --ok2:#84cc16; --warn:#f59e0b;
+    --focus:#60a5fa;
+  }
+  [data-theme="high-contrast"]{
+    --bg:#000; --panel:#000; --text:#fff; --muted:#e5e5e5; --border:#fff; --brand:#ffd000; --ok:#00ff95; --ok2:#7aff00; --focus:#ff3b3b;
   }
   *{box-sizing:border-box}
   html,body{margin:0;padding:0;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;min-height:100vh}
@@ -18,6 +22,9 @@
   h1{margin:0 0 6px;font-size:clamp(1.6rem,3vw,2.1rem)}
   .subtitle{color:#cbd5e1;margin:0 0 8px}
   .desc{color:var(--muted);margin:0}
+
+  .toolbar{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin:10px 0}
+  .toolbar .btn{font-size:.9rem}
 
   .screen{display:none}
   .screen.active{display:block}
@@ -30,26 +37,32 @@
   .ctx label{display:flex;gap:8px;align-items:flex-start;background:#0b1220;border:1px solid var(--border);border-radius:12px;padding:10px}
   .ctx small{color:var(--muted)}
 
-  .btn{display:inline-flex;align-items:center;justify-content:center;border:none;border-radius:12px;padding:10px 14px;font-weight:600;cursor:pointer}
-  .btn-primary{background:var(--brand);color:#fff}
-  .btn-secondary{background:#334155;color:#e2e8f0}
+  .btn{display:inline-flex;align-items:center;justify-content:center;border:1px solid transparent;border-radius:12px;padding:10px 14px;font-weight:600;cursor:pointer}
+  .btn-primary{background:var(--brand);color:#000}
+  .btn-secondary{background:#0b1220;color:var(--text);border-color:var(--border)}
+  .btn-ghost{background:transparent;color:var(--text);border-color:var(--border)}
   .btn[disabled]{opacity:.6;cursor:not-allowed}
+  .btn:focus{outline:3px solid var(--focus);outline-offset:2px}
 
   .progress{display:flex;align-items:center;gap:12px;margin-bottom:16px}
   .bar{flex:1;height:10px;border:1px solid var(--border);background:#1f2937;border-radius:999px;overflow:hidden}
   .fill{height:100%;width:0;background:linear-gradient(90deg,var(--ok),var(--ok2));transition:width .2s ease}
-  .ptext{min-width:115px;text-align:right;color:#cbd5e1}
+  .ptext{min-width:120px;text-align:right;color:#cbd5e1}
 
   .options{display:grid;gap:10px;margin:16px 0}
-  .option{width:100%;text-align:left;background:#0b1220;color:var(--text);border:1px solid var(--border);padding:12px 14px;border-radius:12px;cursor:pointer}
-  .option:hover{border-color:#60a5fa}
+  .option{width:100%;text-align:left;background:#0b1220;color:var(--text);border:2px solid var(--border);padding:12px 14px;border-radius:12px;cursor:pointer}
+  .option:hover{border-color:var(--focus)}
   .option.selected{border-color:var(--ok);background:#0a1a12}
+  .option:focus{outline:3px solid var(--focus);outline-offset:2px}
 
   .list{margin:0;padding-left:18px}
   .list li{margin:6px 0}
   .pill{display:inline-block;padding:4px 10px;border-radius:999px;border:1px solid var(--border);background:#0b1220;color:#cbd5e1;margin:4px 6px 0 0;font-size:.85rem}
 
   .actions{display:flex;gap:10px;margin-top:16px;flex-wrap:wrap}
+
+  .chartbox{margin-top:16px; background:#0b1220; border:1px solid var(--border); border-radius:12px; padding:10px}
+  canvas{display:block;max-width:100%;height:auto}
 
   footer{color:var(--muted);text-align:center;margin:18px 0}
   a{color:#93c5fd}
@@ -59,7 +72,7 @@
     body{background:#fff;color:#111}
     .wrap{max-width:820px}
     .screen,.card{display:block}
-    #welcome,#quiz{display:none !important}
+    #welcome,#quiz,.toolbar{display:none !important}
     .btn,footer{display:none !important}
     .pill{border:1px solid #999;background:#f2f2f2;color:#222}
   }
@@ -70,15 +83,21 @@
   <header>
     <h1>What’s Your Roadblock?</h1>
     <p class="subtitle">UK Civil Service personal growth assessment</p>
-    <p class="desc">18 questions • primary & secondary types • sub-types • UKCS steps • export & share</p>
+    <p class="desc">18+ questions • primary & secondary types • sub-types • UKCS steps • exports • share</p>
   </header>
+
+  <div class="toolbar" role="toolbar" aria-label="Quick settings">
+    <button id="toggle-contrast" class="btn btn-ghost" type="button" aria-pressed="false">High contrast</button>
+    <button id="toggle-lang" class="btn btn-ghost" type="button" aria-pressed="false">Plain English</button>
+    <button id="resume-link" class="btn btn-ghost" type="button" title="Open from permalink if present">Open result link</button>
+  </div>
 
   <!-- Welcome -->
   <section id="welcome" class="screen active">
     <div class="card grid">
       <div>
         <h2>Before we start</h2>
-        <p>This assessment finds your <em>dominant</em> patterns across six roadblocks seen in the UK Civil Service. No personal data is stored.</p>
+        <p id="intro-text">This assessment finds your <em>dominant</em> patterns across six roadblocks seen in the UK Civil Service. No personal data is stored.</p>
         <p style="margin:10px 0 0"><strong>Time:</strong> ~6–8 minutes</p>
         <div style="margin:14px 0 0">
           <button id="start" class="btn btn-primary" type="button">Start assessment</button>
@@ -100,14 +119,14 @@
   </section>
 
   <!-- Quiz -->
-  <section id="quiz" class="screen">
+  <section id="quiz" class="screen" aria-live="polite">
     <div class="card">
-      <div class="progress">
-        <div class="bar"><div class="fill" id="fill"></div></div>
+      <div class="progress" aria-hidden="true">
+        <div class="bar" aria-hidden="true"><div class="fill" id="fill"></div></div>
         <div class="ptext"><span id="now">1</span> / <span id="total">18</span></div>
       </div>
       <h2 id="qtext" style="margin:8px 0 0"></h2>
-      <div id="opts" class="options" role="group" aria-label="Answer options"></div>
+      <div id="opts" class="options" role="radiogroup" aria-label="Answer options"></div>
       <div style="display:flex;gap:10px;justify-content:flex-end">
         <button id="next" class="btn btn-primary" type="button" disabled>Next</button>
       </div>
@@ -131,6 +150,11 @@
       <h3 style="margin-top:16px">Recommendations (UK Civil Service)</h3>
       <ul id="recs" class="list"></ul>
 
+      <div class="chartbox">
+        <strong style="display:block;margin-bottom:8px">Your pattern profile</strong>
+        <canvas id="radar" width="600" height="400" aria-label="Radar chart of your scores" role="img"></canvas>
+      </div>
+
       <div id="ctxBlock" style="margin-top:16px;display:none">
         <h3>Context-aware tips</h3>
         <div id="ctxTags" style="margin-bottom:6px"></div>
@@ -142,9 +166,9 @@
         <button id="copy" class="btn btn-secondary" type="button">Copy results</button>
         <button id="email" class="btn btn-secondary" type="button">Email results</button>
         <button id="pdf" class="btn btn-primary" type="button">Download PDF</button>
-        <button id="csv" class="btn btn-secondary" type="button">Download CSV</button>
-        <button id="json" class="btn btn-secondary" type="button">Download JSON</button>
-        <button id="txt" class="btn btn-secondary" type="button">Download Behaviour Evidence (TXT)</button>
+        <button id="csv" class="btn btn-secondary" type="button">CSV</button>
+        <button id="json" class="btn btn-secondary" type="button">JSON</button>
+        <button id="txt" class="btn btn-secondary" type="button">Behaviour Evidence (TXT)</button>
         <button id="link" class="btn btn-secondary" type="button">Copy shareable link</button>
       </div>
     </div>
@@ -156,52 +180,72 @@
 <script>
 document.addEventListener('DOMContentLoaded', () => {
   /* =========================
-     Types + Subtypes (UKCS)
+     i18n (EN ↔ Plain English)
+  ==========================*/
+  const I18N = {
+    en: { start:"Start assessment", intro:"This assessment finds your <em>dominant</em> patterns across six roadblocks seen in the UK Civil Service. No personal data is stored.", next:"Next", retake:"Retake", copy:"Copy results", email:"Email results", pdf:"Download PDF", csv:"CSV", json:"JSON", txt:"Behaviour Evidence (TXT)", link:"Copy shareable link", hc:"High contrast", plain:"Plain English" },
+    pe: { start:"Start", intro:"This quick quiz shows your main pattern. No personal data is saved.", next:"Next", retake:"Start again", copy:"Copy my result", email:"Email my result", pdf:"Save as PDF", csv:"Download CSV", json:"Download JSON", txt:"Download notes", link:"Copy link", hc:"High contrast", plain:"Plain English (on)" }
+  };
+  let lang = "en";
+  const $ = s => document.querySelector(s);
+
+  function setLang(l){
+    lang = l;
+    $("#start").textContent = I18N[l].start;
+    $("#intro-text").innerHTML = I18N[l].intro;
+    $("#next").textContent = I18N[l].next;
+    $("#retake").textContent = I18N[l].retake;
+    $("#copy").textContent = I18N[l].copy;
+    $("#email").textContent = I18N[l].email;
+    $("#pdf").textContent = I18N[l].pdf;
+    $("#csv").textContent = I18N[l].csv;
+    $("#json").textContent = I18N[l].json;
+    $("#txt").textContent = I18N[l].txt;
+    $("#link").textContent = I18N[l].link;
+    $("#toggle-contrast").textContent = I18N[l].hc;
+    $("#toggle-lang").textContent = I18N[l].plain;
+  }
+
+  /* =========================
+     Types + Subtypes (all six)
   ==========================*/
   const TYPES = {
     fear_perf:{ name:"Fear & Perfectionism",
       desc:"High standards become brakes; fear of failure delays shipping and bids.",
       chars:["Endless polishing of board notes / submissions","Late engagement with key stakeholders (fear of ‘rough’ drafts)","Rigidity when plans change (ministerial shifts, reprioritisation)"],
-      recs:["Define ‘good enough’ upfront (3 acceptance criteria tied to outcome).","Time-box drafting passes; share v0.5 with a ‘warm reviewer’.","Use a risk log that separates reputational vs learning risks.","Book an early triage with Comms/PO to avoid late thrash."]
+      recs:["Define ‘good enough’ upfront (3 acceptance criteria tied to outcome).","Time-box drafting passes; share v0.5 with a ‘warm reviewer’.","Separate reputational vs learning risks in a short risk log.","Book an early triage with Comms/PO to avoid late thrash."],
+      sub:{ outcome:{name:"Outcome perfectionist", hint:"Protects outcomes/reputation by over-perfecting outputs."}, process:{name:"Process perfectionist", hint:"Over-optimises process/templates before starting."} }
     },
     comparison:{ name:"The Comparison Trap",
       desc:"You calibrate against peers/directorates and lose sight of your own value.",
       chars:["Benchmarking other teams’ outputs before scoping your own","Deflated after SCS praise for others’ programmes","Chasing ‘best practice’ over ‘best fit’ for your users"],
-      recs:["Track input metrics you control (briefs shipped, stakeholders engaged).","Run fortnightly ‘evidence of impact’ reviews linked to outcomes.","Define ‘our unique contribution’ vs OGDs to avoid duplication."]
+      recs:["Track input metrics you control (briefs shipped, stakeholders engaged).","Run fortnightly ‘evidence of impact’ reviews linked to outcomes.","Define ‘our unique contribution’ vs OGDs to avoid duplication."],
+      sub:{ social:{name:"Social comparator", hint:"Peers/recognition dominate your calibration."}, bestpractice:{name:"Best-practice chaser", hint:"Mirrors ‘best practice’ over ‘best fit’."} }
     },
     comfort:{ name:"Comfort Zone Dweller",
       desc:"Stable routines trump stretch — secondments, bids, and new policy areas get parked.",
       chars:["Declining cross-government taskforces or fast streams","Preferring BAU over ambiguous policy spikes","Deferring ministerial engagement practice"],
-      recs:["Commit to one low-risk stretch/month (chair a stand-up, lead a small bid).","Shadow a senior briefing; draft the 90-sec opening yourself.","Apply for a micro-secondment (2–6 weeks) with clear learning goals."]
+      recs:["One low-risk stretch/month (chair, small bid).","Shadow a senior briefing; draft the 90-sec opener.","Try a 2–6 week micro-secondment with explicit learning goals."],
+      sub:{ stability:{name:"Stability seeker", hint:"Prefers known routines and low variance."}, risk:{name:"Risk avoider", hint:"Avoids ambiguous asks and visible stretch."} }
     },
     awareness:{ name:"Self-Awareness Gap",
       desc:"Unclear strengths/values make priorities fuzzy and career moves reactive.",
       chars:["Vacancy choices follow grade/pay not strengths","Weak ‘story’ for Success Profiles evidence","Hard to state your domain edge across OGDs"],
-      recs:["Draft a 1-page ‘Personal Operating Manual’ (strengths, energisers, red lines).","Map each project to Success Profiles behaviours with 2 measurable outcomes.","Run 3 informational chats (OGDs/ALBs) and write a hypothesis of fit."]
+      recs:["Draft a 1-page ‘Personal Operating Manual’.","Map projects to behaviours with measurable outcomes.","Do 3 informational chats and write a fit hypothesis."],
+      sub:{ strengths:{name:"Strengths unclear", hint:"Needs firmer strengths/values articulation."}, direction:{name:"Direction fog", hint:"Struggles to choose and commit."} }
     },
     overwhelm:{ name:"Overwhelm & Paralysis",
       desc:"Multiple priorities (bids, PQs, FOIs, delivery) swamp focus and throughput.",
-      chars:["Context-switching between briefs, ministerials, delivery escalations","Long backlog, little flow; everything ‘urgent’","Hard trade-off calls without clear decision rights"],
-      recs:["Daily 3: 1 must-ship, 2 nice-to-ship; park the rest.","90/15 focus blocks; batch similar work (PQs/FOIs) to reduce switching.","Mini-RACI per workstream; pre-agree decision rights and SLAs."]
+      chars:["Context-switching across briefs/ministerials/escalations","Long backlog, little flow; everything ‘urgent’","Trade-off calls unclear without decision rights"],
+      recs:["Daily 3: 1 must-ship, 2 nice-to-ship; park the rest.","90/15 focus blocks; batch PQ/FOI work.","Mini-RACI; pre-agree decision rights + SLAs."],
+      sub:{ overload:{name:"Overloader", hint:"Takes on too much at once."}, indecision:{name:"Prioritisation stall", hint:"Struggles to pick the next thing."} }
     },
     ext_validation:{ name:"External Validation Seeker",
       desc:"You wait for permission/approval (SCS/Private Office) before progressing.",
       chars:["Excessive alignment meetings before drafting","Holding work for green lights instead of versioning","Defensiveness when feedback conflicts"],
-      recs:["State your intent + next action before asking input.","Move via versions (v0.3→v0.6→v1.0) with dates in the covering note.","Agree ‘what good looks like’ and a decision deadline with the SRO."]
+      recs:["State intent + next action before asking input.","Version up (v0.3→v0.6→v1.0) with dates in the cover note.","Agree ‘what good looks like’ + decision deadline with SRO."],
+      sub:{ permission:{name:"Permission seeker", hint:"Waits for go-ahead to start."}, consensus:{name:"Consensus hunter", hint:"Seeks broad approval instead of clear authority."} }
     }
-  };
-
-  // Lightweight subtypes (inferred from which choices within a type you picked)
-  const SUBTYPES = {
-    fear_perf: {
-      outcome: {name:"Outcome perfectionist", hint:"You perfect outputs to protect outcomes/reputation; ship via timed versions."},
-      process: {name:"Process perfectionist", hint:"You perfect processes/templates; favour rough drafts + early stakeholder signal."}
-    },
-    comparison: {
-      social: {name:"Social comparator", hint:"Peer ranking dominates; switch to personal input metrics."},
-      bestpractice: {name:"Best-practice chaser", hint:"Mirrors ‘best practice’; re-center on ‘best fit’ for users."}
-    }
-    // the rest default to no subtypes for now
   };
 
   /* =========================
@@ -209,7 +253,7 @@ document.addEventListener('DOMContentLoaded', () => {
   ==========================*/
   const CTX = {
     lgbtq:{label:"LGBTQ+",tips:[
-      "Use/establish an ERG for rehearsal of briefings; ask for a ‘meeting ally’.",
+      "Use/establish an ERG for rehearsal; appoint a ‘meeting ally’.",
       "Document bias patterns; escalate via HR/People Partner if repeated.",
       "Calibrate visibility to safety; keep written decisions on policy calls."
     ]},
@@ -241,166 +285,171 @@ document.addEventListener('DOMContentLoaded', () => {
   };
 
   /* =========================
-     Questions (18)
-     Each option: [label, typeKey, subTag?]
+     Questions (18) + sub-tags
   ==========================*/
   const Q = (q,...o)=>({q, o});
   const QUESTIONS = [
     Q("A ministerial asks for rapid advice with unclear scope. You…",
       ["Polish a perfect template first","fear_perf","process"],
       ["Check how another team handled theirs","comparison","bestpractice"],
-      ["Suggest deferring to BAU cycle","comfort"],
-      ["Clarify decision + success test first","awareness"],
-      ["Open 10 tabs and stall","overwhelm"],
-      ["Book alignment meetings before drafting","ext_validation"]
+      ["Suggest deferring to BAU cycle","comfort","stability"],
+      ["Clarify decision + success test first","awareness","direction"],
+      ["Open 10 tabs and stall","overwhelm","overload"],
+      ["Book alignment meetings before drafting","ext_validation","consensus"]
     ),
     Q("Feedback splits between ‘too detailed’ and ‘not enough’. Your instinct is…",
       ["Rewrite until flawless","fear_perf","outcome"],
       ["Ask which peer nailed it and copy","comparison","social"],
-      ["Hold until things calm down","comfort"],
-      ["Re-state user/minister need and cut to that","awareness"],
-      ["Spin on structure choices","overwhelm"],
-      ["Wait for SCS steer","ext_validation"]
+      ["Hold until things calm down","comfort","stability"],
+      ["Re-state user/minister need and cut to that","awareness","strengths"],
+      ["Spin on structure choices","overwhelm","indecision"],
+      ["Wait for SCS steer","ext_validation","permission"]
     ),
     Q("You’re offered a cross-gov taskforce secondment.",
       ["Only if you can be excellent from day 1","fear_perf","outcome"],
       ["Who else is going—how do I rank?","comparison","social"],
-      ["Stick to your portfolio for now","comfort"],
-      ["Join if it fits your strengths/values","awareness"],
-      ["Too many moving parts to decide","overwhelm"],
-      ["Ask the SRO for explicit endorsement first","ext_validation"]
+      ["Stick to your portfolio for now","comfort","stability"],
+      ["Join if it fits your strengths/values","awareness","strengths"],
+      ["Too many moving parts to decide","overwhelm","indecision"],
+      ["Ask the SRO for explicit endorsement first","ext_validation","permission"]
     ),
     Q("When planning the week, you tend to…",
       ["Over-plan before starting","fear_perf","process"],
       ["Replicate a ‘top performer’ plan","comparison","bestpractice"],
-      ["Keep it like last week","comfort"],
-      ["Anchor to outcomes you care about","awareness"],
-      ["Huge list; fuzzy first step","overwhelm"],
-      ["Schedule ‘alignment’ before action","ext_validation"]
+      ["Keep it like last week","comfort","stability"],
+      ["Anchor to outcomes you care about","awareness","direction"],
+      ["Huge list; fuzzy first step","overwhelm","indecision"],
+      ["Schedule ‘alignment’ before action","ext_validation","consensus"]
     ),
     Q("On big briefs you usually…",
       ["Hide drafts until they’re perfect","fear_perf","outcome"],
       ["Compare your draft to others’ constantly","comparison","social"],
-      ["Avoid stakeholder heat","comfort"],
-      ["Share v0.5 early for signal","awareness"],
-      ["Juggle too many sections at once","overwhelm"],
-      ["Collect approvals at every step","ext_validation"]
+      ["Avoid stakeholder heat","comfort","risk"],
+      ["Share v0.5 early for signal","awareness","direction"],
+      ["Juggle too many sections at once","overwhelm","overload"],
+      ["Collect approvals at every step","ext_validation","consensus"]
     ),
     Q("When priorities change late…",
       ["Derail—your prep no longer fits","fear_perf","process"],
       ["Worry your work will look worse than peers’","comparison","social"],
-      ["Prefer to delay","comfort"],
-      ["Re-cut to the new decision need","awareness"],
-      ["Cognitive overload","overwhelm"],
-      ["Ask for a new green light","ext_validation"]
+      ["Prefer to delay","comfort","risk"],
+      ["Re-cut to the new decision need","awareness","direction"],
+      ["Cognitive overload","overwhelm","overload"],
+      ["Ask for a new green light","ext_validation","permission"]
     ),
     Q("Promotion planning feels…",
       ["Risky unless evidence is flawless","fear_perf","outcome"],
       ["A race with peers","comparison","social"],
-      ["Optional—happy as is","comfort"],
-      ["A chance to align strengths to roles","awareness"],
-      ["Confusing (behaviours, examples, grades)","overwhelm"],
-      ["Dependent on who endorses you","ext_validation"]
+      ["Optional—happy as is","comfort","stability"],
+      ["A chance to align strengths to roles","awareness","strengths"],
+      ["Confusing (behaviours, examples, grades)","overwhelm","indecision"],
+      ["Dependent on who endorses you","ext_validation","permission"]
     ),
     Q("For scary conversations you…",
       ["Script until ‘perfect’","fear_perf","outcome"],
       ["Ask how others did it","comparison","bestpractice"],
-      ["Hope it resolves","comfort"],
-      ["Open with intent + outcome","awareness"],
-      ["Over-research and delay","overwhelm"],
-      ["Wait for manager to attend","ext_validation"]
+      ["Hope it resolves","comfort","risk"],
+      ["Open with intent + outcome","awareness","direction"],
+      ["Over-research and delay","overwhelm","indecision"],
+      ["Wait for manager to attend","ext_validation","permission"]
     ),
     Q("When you win you think…",
       ["Could have been better","fear_perf","outcome"],
       ["Someone else did bigger","comparison","social"],
-      ["Don’t rock the boat","comfort"],
-      ["What did I learn about fit?","awareness"],
-      ["I’m behind on 12 tasks","overwhelm"],
-      ["Hope everyone approves","ext_validation"]
+      ["Don’t rock the boat","comfort","stability"],
+      ["What did I learn about fit?","awareness","strengths"],
+      ["I’m behind on 12 tasks","overwhelm","overload"],
+      ["Hope everyone approves","ext_validation","consensus"]
     ),
     Q("Best nudge to act:",
       ["Definition of ‘done’ + timer","fear_perf","process"],
       ["Metrics vs myself, not peers","comparison","social"],
-      ["Tiny safe first step","comfort"],
-      ["Re-state why it matters to me","awareness"],
-      ["Only the next atomic step","overwhelm"],
-      ["Decision rights + deadline agreed","ext_validation"]
+      ["Tiny safe first step","comfort","risk"],
+      ["Re-state why it matters to me","awareness","strengths"],
+      ["Only the next atomic step","overwhelm","indecision"],
+      ["Decision rights + deadline agreed","ext_validation","permission"]
     ),
     Q("Stakeholder landscape is messy. You…",
       ["Wait until mapping is perfect","fear_perf","process"],
       ["Mirror another team’s map","comparison","bestpractice"],
-      ["Engage the usual suspects only","comfort"],
-      ["Prioritise by decision power/user impact","awareness"],
-      ["Try to meet everyone and stall","overwhelm"],
-      ["Ask PO/SCS to broker intros first","ext_validation"]
+      ["Engage the usual suspects only","comfort","stability"],
+      ["Prioritise by decision power/user impact","awareness","direction"],
+      ["Try to meet everyone and stall","overwhelm","overload"],
+      ["Ask PO/SCS to broker intros first","ext_validation","consensus"]
     ),
     Q("CS Jobs ad is live. You…",
       ["Tweak evidence endlessly","fear_perf","outcome"],
       ["Compare your CV to friends’","comparison","social"],
-      ["Skip (timing isn’t perfect)","comfort"],
-      ["Map behaviours to outcomes and write","awareness"],
-      ["Open too many guides, freeze","overwhelm"],
-      ["Wait till a senior suggests applying","ext_validation"]
+      ["Skip (timing isn’t perfect)","comfort","risk"],
+      ["Map behaviours to outcomes and write","awareness","strengths"],
+      ["Open too many guides, freeze","overwhelm","indecision"],
+      ["Wait till a senior suggests applying","ext_validation","permission"]
     ),
     Q("You’re asked to chair a cross-directorate stand-up.",
       ["Only if you can nail every Q","fear_perf","outcome"],
       ["Ask who chairs best and imitate","comparison","bestpractice"],
-      ["Decline; not your thing","comfort"],
-      ["Accept; script key outcomes","awareness"],
-      ["Over-prep the deck and overload","overwhelm"],
-      ["Check with SRO that it’s wise first","ext_validation"]
+      ["Decline; not your thing","comfort","risk"],
+      ["Accept; script key outcomes","awareness","direction"],
+      ["Over-prep the deck and overload","overwhelm","overload"],
+      ["Check with SRO that it’s wise first","ext_validation","permission"]
     ),
     Q("A PQ/FOI spike lands suddenly.",
       ["Refactor templates before answering","fear_perf","process"],
       ["Check how another team presents theirs","comparison","bestpractice"],
-      ["Route to BAU queue","comfort"],
-      ["Clarify scope, timelines, decision risks","awareness"],
-      ["Multi-task across all; stall","overwhelm"],
-      ["Wait for PO steer","ext_validation"]
+      ["Route to BAU queue","comfort","stability"],
+      ["Clarify scope, timelines, decision risks","awareness","direction"],
+      ["Multi-task across all; stall","overwhelm","overload"],
+      ["Wait for PO steer","ext_validation","permission"]
     ),
     Q("You need sponsorship for a project.",
       ["Perfect the pack before speaking","fear_perf","outcome"],
       ["Find who got sponsored and copy","comparison","social"],
-      ["Avoid the politics","comfort"],
-      ["Ask 1–2 SCS with clear ask & value","awareness"],
-      ["Endless list of potential sponsors","overwhelm"],
-      ["Wait until a senior approaches you","ext_validation"]
+      ["Avoid the politics","comfort","risk"],
+      ["Ask 1–2 SCS with clear ask & value","awareness","strengths"],
+      ["Endless list of potential sponsors","overwhelm","indecision"],
+      ["Wait until a senior approaches you","ext_validation","permission"]
     ),
     Q("You’re behind; what do you cut?",
       ["Nothing—quality must not slip","fear_perf","outcome"],
       ["What others cut","comparison","bestpractice"],
-      ["Everything risky","comfort"],
-      ["Anything not tied to outcomes","awareness"],
-      ["Freeze (can’t choose)","overwhelm"],
-      ["Whatever SRO says","ext_validation"]
+      ["Everything risky","comfort","risk"],
+      ["Anything not tied to outcomes","awareness","direction"],
+      ["Freeze (can’t choose)","overwhelm","indecision"],
+      ["Whatever SRO says","ext_validation","consensus"]
     ),
     Q("A ministerial visit is announced.",
       ["Perfect visuals before confirming messages","fear_perf","process"],
       ["See another team’s show-and-tell","comparison","bestpractice"],
-      ["Let another unit lead","comfort"],
-      ["Define 2–3 headlines; align stakeholders","awareness"],
-      ["Spin on agenda details","overwhelm"],
-      ["Wait for PO to set the brief","ext_validation"]
+      ["Let another unit lead","comfort","stability"],
+      ["Define 2–3 headlines; align stakeholders","awareness","direction"],
+      ["Spin on agenda details","overwhelm","overload"],
+      ["Wait for PO to set the brief","ext_validation","permission"]
     ),
     Q("After critical feedback you usually…",
       ["Rewrite privately until flawless","fear_perf","outcome"],
       ["Compare who got praised","comparison","social"],
-      ["Keep your head down for a bit","comfort"],
-      ["Extract the learning; schedule a re-try","awareness"],
-      ["Open every best-practice doc","overwhelm"],
-      ["Seek multiple approvals before moving","ext_validation"]
+      ["Keep your head down for a bit","comfort","stability"],
+      ["Extract the learning; schedule a re-try","awareness","strengths"],
+      ["Open every best-practice doc","overwhelm","indecision"],
+      ["Seek multiple approvals before moving","ext_validation","consensus"]
     )
   ];
 
   /* =========================
      State & Elements
   ==========================*/
-  let idx = 0, selected = null;
+  let idx = 0, selected = null, langToggle=false, contrast=false;
   const scores = {fear_perf:0, comparison:0, comfort:0, awareness:0, overwhelm:0, ext_validation:0};
-  const subtypeHits = {fear_perf:{outcome:0,process:0}, comparison:{social:0,bestpractice:0}};
-  const selections = []; // [{qIndex,type,sub?}]
+  const subHits = {
+    fear_perf:{outcome:0,process:0},
+    comparison:{social:0,bestpractice:0},
+    comfort:{stability:0,risk:0},
+    awareness:{strengths:0,direction:0},
+    overwhelm:{overload:0,indecision:0},
+    ext_validation:{permission:0,consensus:0}
+  };
+  const selections = []; // for permalink + subtype inference
 
-  const $ = s => document.querySelector(s);
   const welcome = $("#welcome"), quiz = $("#quiz"), results = $("#results");
   const startBtn = $("#start"), nextBtn = $("#next"), retakeBtn = $("#retake");
   const copyBtn = $("#copy"), emailBtn = $("#email"), pdfBtn = $("#pdf");
@@ -409,6 +458,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const typeEl = $("#type"), secEl = $("#secondary"), subEl = $("#subtype"), typedesc = $("#typedesc"), chars = $("#chars"), recs = $("#recs");
   const ctxBlock = $("#ctxBlock"), ctxTags = $("#ctxTags"), ctxRecs = $("#ctxRecs");
   const contextsEl = $("#contexts");
+  const radar = $("#radar");
   totalEl.textContent = QUESTIONS.length;
 
   /* =========================
@@ -416,13 +466,28 @@ document.addEventListener('DOMContentLoaded', () => {
   ==========================*/
   function show(el){ el.classList.add("active"); }
   function hide(el){ el.classList.remove("active"); }
+  function checkedContexts(){ return [...contextsEl.querySelectorAll("input:checked")].map(c=>c.value); }
   function resetAll(){
     idx = 0; selected = null; selections.length = 0;
     Object.keys(scores).forEach(k=>scores[k]=0);
-    subtypeHits.fear_perf.outcome = 0; subtypeHits.fear_perf.process = 0;
-    subtypeHits.comparison.social = 0; subtypeHits.comparison.bestpractice = 0;
+    Object.keys(subHits).forEach(k=>Object.keys(subHits[k]).forEach(s=>subHits[k][s]=0));
+  }
+  function ranking(){ return Object.entries(scores).sort((a,b)=>b[1]-a[1]); }
+  function inferSubtype(key){
+    const pack = subHits[key]; if(!pack) return null;
+    let bestK = null, bestV = -1;
+    for(const [k,v] of Object.entries(pack)){ if(v>bestV){bestV=v; bestK=k;} }
+    return bestK ? TYPES[key].sub?.[bestK] || null : null;
+  }
+  function mergeRecs(primary, secondary){
+    const base = TYPES[primary].recs.slice(0,4);
+    if(secondary && secondary!==primary){ return base.concat(TYPES[secondary].recs.slice(0,2).map(r=>"(" + TYPES[secondary].name + ") " + r)); }
+    return base;
   }
 
+  /* =========================
+     Rendering
+  ==========================*/
   function renderQ(){
     const item = QUESTIONS[idx];
     qtext.textContent = item.q;
@@ -432,115 +497,131 @@ document.addEventListener('DOMContentLoaded', () => {
 
     item.o.forEach(([label,key,sub])=>{
       const b = document.createElement("button");
-      b.className = "option"; b.type = "button";
-      b.textContent = label; b.dataset.type = key; if(sub) b.dataset.sub = sub;
-      b.addEventListener("click", ()=>{
-        [...opts.children].forEach(x=>x.classList.remove("selected"));
-        b.classList.add("selected");
-        selected = {type:key, sub:sub||null};
-        nextBtn.disabled = false;
+      b.className = "option"; b.type = "button"; b.textContent = label;
+      b.setAttribute("role","radio"); b.setAttribute("aria-checked","false"); b.tabIndex = 0;
+      b.dataset.type = key; if(sub) b.dataset.sub = sub;
+      b.addEventListener("click", ()=>choose(b));
+      b.addEventListener("keydown", (e)=>{
+        if(e.key==="Enter"||e.key===" "){ e.preventDefault(); choose(b); }
+        if(e.key==="ArrowDown"||e.key==="ArrowRight"){ e.preventDefault(); focusSibling(b,1); }
+        if(e.key==="ArrowUp"||e.key==="ArrowLeft"){ e.preventDefault(); focusSibling(b,-1); }
       });
       opts.appendChild(b);
     });
 
     nowEl.textContent = (idx+1);
     fill.style.width = Math.round((idx/QUESTIONS.length)*100) + "%";
+    // focus first option for accessibility
+    opts.firstElementChild?.focus();
+  }
+  function choose(btn){
+    [...opts.children].forEach(x=>{ x.classList.remove("selected"); x.setAttribute("aria-checked","false"); });
+    btn.classList.add("selected"); btn.setAttribute("aria-checked","true");
+    selected = {type:btn.dataset.type, sub:btn.dataset.sub||null};
+    nextBtn.disabled = false;
+  }
+  function focusSibling(current, dir){
+    const items = [...opts.children]; const i = items.indexOf(current);
+    const j = (i + dir + items.length) % items.length; items[j].focus();
   }
 
-  function ranking(){
-    return Object.entries(scores).sort((a,b)=>b[1]-a[1]);
-  }
+  function renderResults(){
+    const [pKey,pScore] = ranking()[0]; const [sKey,sScore] = ranking()[1] || [null,0];
+    const p = TYPES[pKey];
 
-  function inferSubtype(primaryKey){
-    if(primaryKey==="fear_perf"){
-      const out = subtypeHits.fear_perf;
-      const winner = out.outcome===out.process
-        ? (selections.some(s=>s.type==="fear_perf" && s.sub==="outcome") ? "outcome" : "process")
-        : (out.outcome>out.process ? "outcome" : "process");
-      return SUBTYPES.fear_perf[winner];
-    }
-    if(primaryKey==="comparison"){
-      const out = subtypeHits.comparison;
-      const winner = out.social===out.bestpractice
-        ? (selections.some(s=>s.type==="comparison" && s.sub==="social") ? "social" : "bestpractice")
-        : (out.social>out.bestpractice ? "social" : "bestpractice");
-      return SUBTYPES.comparison[winner];
-    }
-    return null; // others: no subtype for now
-  }
+    typeEl.textContent = p.name;
+    typedesc.textContent = p.desc;
 
-  function contextChecked(){
-    return [...contextsEl.querySelectorAll("input[type='checkbox']:checked")].map(c=>c.value);
-  }
+    const sub = inferSubtype(pKey);
+    if(sub){ subEl.style.display = ""; subEl.textContent = `Subtype: ${sub.name}`; }
+    else { subEl.style.display = "none"; }
 
-  function mergeRecommendations(primaryKey, secondaryKey){
-    const base = TYPES[primaryKey].recs.slice(0,4);
-    if(secondaryKey && secondaryKey!==primaryKey){
-      const extra = TYPES[secondaryKey].recs.slice(0,2);
-      return base.concat(extra.map(x=>"(secondary) "+x));
-    }
-    return base;
-  }
+    if(sKey && sScore>0 && sKey!==pKey){ secEl.style.display = ""; secEl.textContent = `Secondary: ${TYPES[sKey].name}`; }
+    else { secEl.style.display = "none"; }
 
-  function renderResultFromScores(){
-    const rank = ranking();
-    const [k1,v1] = rank[0]; const [k2,v2] = rank[1];
+    chars.innerHTML = ""; p.chars.forEach(c=>{ const li=document.createElement("li"); li.textContent=c; chars.appendChild(li); });
 
-    const t1 = TYPES[k1];
-    typeEl.textContent = t1.name;
-    typedesc.textContent = t1.desc;
+    recs.innerHTML = ""; mergeRecs(pKey,sKey).forEach(r=>{ const li=document.createElement("li"); li.textContent=r; recs.appendChild(li); });
 
-    // subtype
-    const sub = inferSubtype(k1);
-    if(sub){
-      subEl.style.display = "";
-      subEl.textContent = `Subtype: ${sub.name}`;
-    } else {
-      subEl.style.display = "none";
-    }
-
-    // secondary
-    if(v2>0 && k2!==k1){
-      secEl.style.display = ""; secEl.textContent = `Secondary: ${TYPES[k2].name}`;
-    } else {
-      secEl.style.display = "none";
-    }
-
-    // chars + merged recs
-    chars.innerHTML = "";
-    TYPES[k1].chars.forEach(c=>{ const li=document.createElement("li"); li.textContent=c; chars.appendChild(li); });
-
-    recs.innerHTML = "";
-    mergeRecommendations(k1, k2).forEach(r=>{ const li=document.createElement("li"); li.textContent=r; recs.appendChild(li); });
-
-    // context tips
-    const checked = contextChecked();
+    // Context tips
+    const checked = checkedContexts();
     if(checked.length){
       ctxBlock.style.display = "";
       ctxTags.innerHTML = ""; ctxRecs.innerHTML = "";
       checked.forEach(v=>{
         const cfg = CTX[v]; if(!cfg) return;
-        const tag = document.createElement("span"); tag.className="pill"; tag.textContent = cfg.label; ctxTags.appendChild(tag);
+        const tag = document.createElement("span"); tag.className="pill"; tag.textContent=cfg.label; ctxTags.appendChild(tag);
         cfg.tips.forEach(tip=>{ const li=document.createElement("li"); li.textContent=tip; ctxRecs.appendChild(li); });
       });
-    } else {
-      ctxBlock.style.display = "none";
-    }
+    } else { ctxBlock.style.display = "none"; }
+
+    drawRadar();
   }
 
+  /* =========================
+     Radar (vanilla canvas)
+  ==========================*/
+  function drawRadar(){
+    const ctx = radar.getContext("2d");
+    const names = Object.keys(scores).map(k=>TYPES[k].name);
+    const vals = Object.values(scores);
+    const max = Math.max(1, ...vals);
+    const w = radar.width, h = radar.height, cx = w/2, cy = h/2;
+    const radius = Math.min(w,h)/2 - 40;
+    ctx.clearRect(0,0,w,h);
+
+    // grid
+    ctx.lineWidth = 1; ctx.strokeStyle = getComputedStyle(document.documentElement).getPropertyValue('--border');
+    for(let r=0.25;r<=1;r+=0.25){
+      ctx.beginPath();
+      for(let i=0;i<names.length;i++){
+        const a = (Math.PI*2*(i/names.length)) - Math.PI/2;
+        const x = cx + Math.cos(a)*radius*r; const y = cy + Math.sin(a)*radius*r;
+        if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+      }
+      ctx.closePath(); ctx.stroke();
+    }
+    // spokes + labels
+    ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--text');
+    ctx.font = "12px system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif";
+    for(let i=0;i<names.length;i++){
+      const a = (Math.PI*2*(i/names.length)) - Math.PI/2;
+      const x = cx + Math.cos(a)*radius; const y = cy + Math.sin(a)*radius;
+      ctx.beginPath(); ctx.moveTo(cx,cy); ctx.lineTo(x,y); ctx.stroke();
+      const lx = cx + Math.cos(a)*(radius+10), ly = cy + Math.sin(a)*(radius+10);
+      ctx.textAlign = Math.cos(a)>0.1 ? "left" : Math.cos(a)<-0.1 ? "right" : "center";
+      ctx.textBaseline = Math.sin(a)>0.1 ? "top" : Math.sin(a)<-0.1 ? "bottom" : "middle";
+      ctx.fillText(names[i], lx, ly);
+    }
+    // data polygon
+    ctx.beginPath();
+    for(let i=0;i<vals.length;i++){
+      const a = (Math.PI*2*(i/vals.length)) - Math.PI/2;
+      const r = (vals[i]/max)*radius;
+      const x = cx + Math.cos(a)*r; const y = cy + Math.sin(a)*r;
+      if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+    }
+    ctx.closePath();
+    ctx.globalAlpha = 0.15; ctx.fillStyle = "#22c55e"; ctx.fill(); ctx.globalAlpha = 1;
+    ctx.lineWidth = 2; ctx.strokeStyle = "#22c55e"; ctx.stroke();
+  }
+
+  /* =========================
+     Result text & downloads
+  ==========================*/
   function resultsText(){
     const rank = ranking();
-    const [k1] = rank[0]; const [k2] = rank[1];
-    const t1 = TYPES[k1]; const t2 = TYPES[k2];
+    const [k1] = rank[0]; const [k2] = rank[1] || [];
+    const t1 = TYPES[k1]; const t2 = k2 ? TYPES[k2] : null;
     const sub = inferSubtype(k1);
 
-    const charsItems = [...chars.querySelectorAll('li')].map(li=>`• ${li.textContent}`).join('\n');
-    const recItems = [...recs.querySelectorAll('li')].map(li=>`• ${li.textContent}`).join('\n');
-    const ctxChecked = contextChecked();
+    const charsItems = [...$("#chars").querySelectorAll('li')].map(li=>`• ${li.textContent}`).join('\n');
+    const recItems = [...$("#recs").querySelectorAll('li')].map(li=>`• ${li.textContent}`).join('\n');
+    const ctxChecked = checkedContexts();
     const ctxTips = [...document.querySelectorAll('#ctxRecs li')].map(li=>`• ${li.textContent}`).join('\n');
 
     const subLine = sub ? `\nSubtype: ${sub.name} — ${sub.hint}` : "";
-    const secLine = (t2 && t2.name && t2.name!==t1.name) ? `\nSecondary: ${t2.name}` : "";
+    const secLine = t2 ? `\nSecondary: ${t2.name}` : "";
     let ctxHeader = "";
     if(ctxChecked.length){
       const labels = ctxChecked.map(v => CTX[v]?.label || v).join(', ');
@@ -571,52 +652,69 @@ Link: ${location.href}`;
     a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(url), 800);
   }
 
-  // encode/decode for permalink (hash)
-  function toPermalink(){
-    const payload = {
-      v:1,
-      scores,
-      ctx: contextChecked(),
-      sel: selections, // for subtype inference on restore
-      ts: Date.now()
+  /* =========================
+     Permalinks (human slug)
+  ==========================*/
+  function slugForPrimary(k){ return TYPES[k].name.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/(^-|-$)/g,''); }
+  function pack(){
+    return {
+      v:2,
+      s:Object.assign({},scores),
+      c:checkedContexts(),
+      sel:selections,
+      ts:Date.now()
     };
-    const raw = JSON.stringify(payload);
-    const b64 = btoa(unescape(encodeURIComponent(raw)));
-    return location.origin + location.pathname + "#r=" + b64;
   }
-  function tryRestoreFromHash(){
-    const m = location.hash.match(/#r=([^&]+)/);
+  function encode(data){
+    const raw = JSON.stringify(data);
+    return btoa(unescape(encodeURIComponent(raw)));
+  }
+  function decode(b64){
+    return JSON.parse(decodeURIComponent(escape(atob(b64))));
+  }
+  function buildPermalink(){
+    const r = ranking(); const [pKey] = r[0];
+    const slug = slugForPrimary(pKey);
+    return location.origin + location.pathname + "#/"+ slug + "?r=" + encode(pack());
+  }
+  function restoreFromHash(){
+    const m = location.hash.match(/#\/[^?]+?\?r=([^&]+)/);
     if(!m) return false;
     try{
-      const json = decodeURIComponent(escape(atob(m[1])));
-      const data = JSON.parse(json);
-      // restore scores
-      Object.keys(scores).forEach(k=>scores[k] = data.scores?.[k] ?? 0);
-      // restore subtype hits if possible
+      const data = decode(m[1]);
+      Object.keys(scores).forEach(k=>scores[k] = data.s?.[k] ?? 0);
       if(Array.isArray(data.sel)){
         data.sel.forEach(s=>{
-          if(s.type==="fear_perf" && s.sub){ subtypeHits.fear_perf[s.sub] = (subtypeHits.fear_perf[s.sub]||0)+1; }
-          if(s.type==="comparison" && s.sub){ subtypeHits.comparison[s.sub] = (subtypeHits.comparison[s.sub]||0)+1; }
+          if(s.sub && subHits[s.type]) subHits[s.type][s.sub] = (subHits[s.type][s.sub]||0)+1;
         });
       }
-      // restore contexts
-      if(Array.isArray(data.ctx)){
-        [...contextsEl.querySelectorAll("input[type='checkbox']")].forEach(cb=>{
-          cb.checked = data.ctx.includes(cb.value);
-        });
+      if(Array.isArray(data.c)){
+        [...contextsEl.querySelectorAll("input")].forEach(cb=>cb.checked = data.c.includes(cb.value));
       }
       hide(welcome); hide(quiz); show(results);
-      renderResultFromScores();
+      renderResults();
       return true;
-    }catch(e){
-      console.warn("Permalink parse failed", e);
-      return false;
-    }
+    }catch(e){ console.warn("Permalink decode failed", e); return false; }
   }
 
   /* =========================
      Events
   ==========================*/
+  $("#toggle-contrast").addEventListener("click", ()=>{
+    contrast = !contrast;
+    document.documentElement.setAttribute("data-theme", contrast?"high-contrast":"default");
+    $("#toggle-contrast").setAttribute("aria-pressed", String(contrast));
+    drawRadar();
+  });
+  $("#toggle-lang").addEventListener("click", ()=>{
+    const next = lang==="en" ? "pe" : "en";
+    setLang(next);
+    $("#toggle-lang").setAttribute("aria-pressed", String(next==="pe"));
+  });
+  $("#resume-link").addEventListener("click", ()=>{ restoreFromHash() || alert("No result link found in the URL."); });
+
+  setLang("en");
+
   startBtn.addEventListener("click", ()=>{
     hide(welcome); show(quiz);
     resetAll();
@@ -627,22 +725,19 @@ Link: ${location.href}`;
     if(selected){
       scores[selected.type] += 1;
       selections.push({qIndex: idx, type: selected.type, sub: selected.sub || null});
-      if(selected.type==="fear_perf" && selected.sub){ subtypeHits.fear_perf[selected.sub]++; }
-      if(selected.type==="comparison" && selected.sub){ subtypeHits.comparison[selected.sub]++; }
+      if(selected.sub && subHits[selected.type]) subHits[selected.type][selected.sub] += 1;
     }
     if(idx < QUESTIONS.length - 1){
       idx += 1; renderQ();
     } else {
       hide(quiz); show(results);
-      document.getElementById('fill').style.width = "100%";
-      renderResultFromScores();
-      // refresh hash to represent current result
-      history.replaceState(null, "", toPermalink());
+      $("#fill").style.width = "100%";
+      renderResults();
+      history.replaceState(null, "", buildPermalink());
     }
   });
 
   retakeBtn.addEventListener("click", ()=>{
-    // keep contexts, clear hash
     history.replaceState(null, "", location.pathname + location.search);
     hide(results); show(welcome);
   });
@@ -654,7 +749,7 @@ Link: ${location.href}`;
 
   emailBtn.addEventListener("click", ()=>{
     const subject = encodeURIComponent("My What’s Your Roadblock result (UK Civil Service)");
-    const body = encodeURIComponent(resultsText());
+    const body = encodeURIComponent(resultsText() + "\n\nDevelopment plan draft:\n- Next 30 days: \n- Stakeholders to engage: \n- Behaviours to evidence: \n- Support/adjustments needed: ");
     location.href = `mailto:?subject=${subject}&body=${body}`;
   });
 
@@ -671,8 +766,8 @@ Link: ${location.href}`;
       url: location.href,
       timestamp: new Date().toISOString(),
       scores,
-      ranking: ranking().map(([k,v])=>({type:k,name:TYPES[k].name,score:v})),
-      contexts: contextChecked(),
+      ranking: ranking().map(([k,v])=>({key:k,name:TYPES[k].name,score:v})),
+      contexts: checkedContexts(),
       subtype: inferSubtype(ranking()[0][0])?.name || null,
       selections
     };
@@ -680,28 +775,18 @@ Link: ${location.href}`;
   });
 
   txtBtn.addEventListener("click", ()=>{
-    const rank = ranking(); const [k1] = rank[0]; const [k2] = rank[1];
-    const t1 = TYPES[k1]; const t2 = TYPES[k2];
-    const behaviours = [
-      "Seeing the Big Picture","Changing and Improving","Making Effective Decisions",
-      "Leadership","Communicating and Influencing","Working Together",
-      "Developing Self and Others","Managing a Quality Service","Delivering at Pace"
-    ];
+    const beh = ["Seeing the Big Picture","Changing and Improving","Making Effective Decisions","Leadership","Communicating and Influencing","Working Together","Developing Self and Others","Managing a Quality Service","Delivering at Pace"];
     const scaffold =
 `What’s Your Roadblock? — Behaviour Evidence (UK Civil Service)
-Primary: ${t1.name}${(t2&&t2.name&&t2.name!==t1.name)?` | Secondary: ${t2.name}`:""}
 
-Summary:
-${t1.desc}
+Summary of impact examples (paste real evidence + metrics):
+- Situation:
+- Task:
+- Action:
+- Result/Impact:
 
-Example Evidence (paste your real examples and metrics):
-- Situation: 
-- Task: 
-- Action: 
-- Result/Impact: (include metrics, outcomes, user benefit)
-
-Behaviours (prompt list):
-${behaviours.map(b=>`- ${b}`).join("\n")}
+Behaviours prompt list:
+${beh.map(b=>"- "+b).join("\n")}
 
 Scores:
 ${ranking().map(([k,v])=>`- ${TYPES[k].name}: ${v}`).join('\n')}
@@ -710,15 +795,13 @@ ${ranking().map(([k,v])=>`- ${TYPES[k].name}: ${v}`).join('\n')}
   });
 
   linkBtn.addEventListener("click", async ()=>{
-    const url = toPermalink();
+    const url = buildPermalink();
     try{ await navigator.clipboard.writeText(url); alert("Shareable link copied!"); }
     catch(e){ prompt("Copy your link:", url); }
   });
 
-  // If a permalink is present, restore straight to results
-  if(!tryRestoreFromHash()){
-    // else show welcome as normal
-  }
+  // Restore from permalink if present
+  restoreFromHash();
 });
 </script>
 </body>
